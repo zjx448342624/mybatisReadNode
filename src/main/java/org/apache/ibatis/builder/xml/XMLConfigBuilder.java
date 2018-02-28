@@ -128,7 +128,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
     //读取mybatis-config.xml文件下所有reflectorFactory的节点--反射工厂
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
-      settingsElement(settings);
+      settingsElement(settings);//每一个setting 属性和configuration的属性复制
       // read it after objectFactory and objectWrapperFactory issue #631
     //读取mybatis-config.xml文件下所有environments的节点--环境
       environmentsElement(root.evalNode("environments"));
@@ -300,12 +300,17 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
         if (isSpecifiedEnvironment(id)) {
+        	//获取事物管理器
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
+          //获取数据源并且创建数据源工厂通过工厂建立环境environmentBuilder对象
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+          //通过工厂获取数据独享
           DataSource dataSource = dsFactory.getDataSource();
+          //声称对象,对Environment.Builder完成初始化赋值并且放到全局配置对象configuration中
           Environment.Builder environmentBuilder = new Environment.Builder(id)
               .transactionFactory(txFactory)
               .dataSource(dataSource);
+          //build 使Environment初始化
           configuration.setEnvironment(environmentBuilder.build());
         }
       }
@@ -314,6 +319,7 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void databaseIdProviderElement(XNode context) throws Exception {
     DatabaseIdProvider databaseIdProvider = null;
+    //寻找数据库厂商标识然后根据配置来识别数据库和厂商对应的表示
     if (context != null) {
       String type = context.getStringAttribute("type");
       // awful patch to keep backward compatibility
@@ -324,8 +330,10 @@ public class XMLConfigBuilder extends BaseBuilder {
       databaseIdProvider = (DatabaseIdProvider) resolveClass(type).newInstance();
       databaseIdProvider.setProperties(properties);
     }
+    //获取环境对象
     Environment environment = configuration.getEnvironment();
     if (environment != null && databaseIdProvider != null) {
+    	//通过环境的数据库来获取厂商数据的名称
       String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
       configuration.setDatabaseId(databaseId);
     }
@@ -344,6 +352,7 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private DataSourceFactory dataSourceElement(XNode context) throws Exception {
     if (context != null) {
+    	//通过dataSource对象创建实例然后读取数据创建对象工厂
       String type = context.getStringAttribute("type");
       Properties props = context.getChildrenAsProperties();
       DataSourceFactory factory = (DataSourceFactory) resolveClass(type).newInstance();
@@ -354,6 +363,7 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private void typeHandlerElement(XNode parent) throws Exception {
+	  //注册然后通过java类型和数据库类型的转换通过handler
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
@@ -383,26 +393,27 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
-        if ("package".equals(child.getName())) {
+        if ("package".equals(child.getName())) {//便利所有节点然后把包的mapper直接注册
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
         } else {
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
+          //三个属性只要有一个有那么就可以成功找到xml配置文件
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
-            mapperParser.parse();
+            mapperParser.parse();//找到配置文件读取信息
           } else if (resource == null && url != null && mapperClass == null) {
             ErrorContext.instance().resource(url);
             InputStream inputStream = Resources.getUrlAsStream(url);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
-            mapperParser.parse();
+            mapperParser.parse();//找到配置文件读取信息
           } else if (resource == null && url == null && mapperClass != null) {
             Class<?> mapperInterface = Resources.classForName(mapperClass);
-            configuration.addMapper(mapperInterface);
+            configuration.addMapper(mapperInterface);//找到对应的Class对象全名称然后直接注册到Configuration的mapperRegistry注册器中
           } else {
             throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");
           }

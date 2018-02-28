@@ -187,9 +187,9 @@ public class MapperBuilderAssistant extends BaseBuilder {
       if (!configuration.hasResultMap(extend)) {
         throw new IncompleteElementException("Could not find a parent resultmap with id '" + extend + "'");
       }
-      ResultMap resultMap = configuration.getResultMap(extend);
+      ResultMap resultMap = configuration.getResultMap(extend);//通过id获取resultMap
       List<ResultMapping> extendedResultMappings = new ArrayList<ResultMapping>(resultMap.getResultMappings());
-      extendedResultMappings.removeAll(resultMappings);
+      extendedResultMappings.removeAll(resultMappings);//排除掉所有继承的Mapping
       // Remove parent constructor if this resultMap declares a constructor.
       boolean declaresConstructor = false;
       for (ResultMapping resultMapping : resultMappings) {
@@ -358,37 +358,29 @@ public class MapperBuilderAssistant extends BaseBuilder {
     return resultMaps;
   }
 
-  public ResultMapping buildResultMapping(
-      Class<?> resultType,
-      String property,
-      String column,
-      Class<?> javaType,
-      JdbcType jdbcType,
-      String nestedSelect,
-      String nestedResultMap,
-      String notNullColumn,
-      String columnPrefix,
-      Class<? extends TypeHandler<?>> typeHandler,
-      List<ResultFlag> flags,
-      String resultSet,
-      String foreignColumn,
-      boolean lazy) {
+  public ResultMapping buildResultMapping(Class<?> resultType,String property,String column,
+      Class<?> javaType,JdbcType jdbcType,String nestedSelect,String nestedResultMap,
+      String notNullColumn,String columnPrefix,Class<? extends TypeHandler<?>> typeHandler,
+      List<ResultFlag> flags,String resultSet,String foreignColumn,
+      boolean lazy) {//解析方法
+	  //通过返回类型,返回参数和java类型获取处理handler
     Class<?> javaTypeClass = resolveResultJavaType(resultType, property, javaType);
     TypeHandler<?> typeHandlerInstance = resolveTypeHandler(javaTypeClass, typeHandler);
     List<ResultMapping> composites = parseCompositeColumnName(column);
+    //构建RsultMappingBuilder对象使用builder设计模式
     return new ResultMapping.Builder(configuration, property, column, javaTypeClass)
-        .jdbcType(jdbcType)
-        .nestedQueryId(applyCurrentNamespace(nestedSelect, true))
-        .nestedResultMapId(applyCurrentNamespace(nestedResultMap, true))
-        .resultSet(resultSet)
-        .typeHandler(typeHandlerInstance)
+        .jdbcType(jdbcType)//jdbc类型
+        .nestedQueryId(applyCurrentNamespace(nestedSelect, true))//获取使用namespace和select作为唯一标识
+        .nestedResultMapId(applyCurrentNamespace(nestedResultMap, true))//获取使用namespace和resultMap作为唯一返回标识
+        .resultSet(resultSet)//返回set
+        .typeHandler(typeHandlerInstance)//类型处理handler
         .flags(flags == null ? new ArrayList<ResultFlag>() : flags)
-        .composites(composites)
-        .notNullColumns(parseMultipleColumnNames(notNullColumn))
-        .columnPrefix(columnPrefix)
-        .foreignColumn(foreignColumn)
-        .lazy(lazy)
-        .build();
+        .composites(composites)//和成列
+        .notNullColumns(parseMultipleColumnNames(notNullColumn))//费控列
+        .columnPrefix(columnPrefix)//普通列
+        .foreignColumn(foreignColumn)//额外列
+        .lazy(lazy)//懒加载
+        .build();//构建ResultMapping
   }
 
   private Set<String> parseMultipleColumnNames(String columnName) {
