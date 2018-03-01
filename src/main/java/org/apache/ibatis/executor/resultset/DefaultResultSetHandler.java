@@ -184,16 +184,16 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
 
     final List<Object> multipleResults = new ArrayList<Object>();
-
+    //查询到数据返回
     int resultSetCount = 0;
     ResultSetWrapper rsw = getFirstResultSet(stmt);
-
+    //返回数据ResultMap和大小
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
-    validateResultMapsCount(rsw, resultMapCount);
-    while (rsw != null && resultMapCount > resultSetCount) {
+    validateResultMapsCount(rsw, resultMapCount);//进行查询的数值和查询的内容的校验
+    while (rsw != null && resultMapCount > resultSetCount) {//遍历数据
       ResultMap resultMap = resultMaps.get(resultSetCount);
-      handleResultSet(rsw, resultMap, multipleResults, null);
+      handleResultSet(rsw, resultMap, multipleResults, null);//获取数据封装到multipleResults中
       rsw = getNextResultSet(stmt);
       cleanUpAfterHandlingResultSet();
       resultSetCount++;
@@ -213,7 +213,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         resultSetCount++;
       }
     }
-
+    //解析返回的List
     return collapseSingleResultList(multipleResults);
   }
 

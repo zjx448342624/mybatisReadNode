@@ -58,8 +58,10 @@ public class SimpleExecutor extends BaseExecutor {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
+      //通过现有的数据进行封装语句解析handler
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
       stmt = prepareStatement(handler, ms.getStatementLog());
+      //通过handler进行查询
       return handler.<E>query(stmt, resultHandler);
     } finally {
       closeStatement(stmt);

@@ -288,9 +288,15 @@ public final class MappedStatement {
     return resultSets;
   }
   
+  /**
+   * 通过具体的传进来的id表示动态获取sql语句封装到BoundSql
+   * @param parameterObject
+   * @return
+   */
   public BoundSql getBoundSql(Object parameterObject) {
     BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
     List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
+    //获取parameterMappings集合如果不为空则传入boundSql中
     if (parameterMappings == null || parameterMappings.isEmpty()) {
       boundSql = new BoundSql(configuration, boundSql.getSql(), parameterMap.getParameterMappings(), parameterObject);
     }

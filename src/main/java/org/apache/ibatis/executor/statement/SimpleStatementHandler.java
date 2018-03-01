@@ -70,7 +70,9 @@ public class SimpleStatementHandler extends BaseStatementHandler {
   @Override
   public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
     String sql = boundSql.getSql();
+    //执行sql
     statement.execute(sql);
+    //handleResultSets对返回集合的封装
     return resultSetHandler.<E>handleResultSets(statement);
   }
 

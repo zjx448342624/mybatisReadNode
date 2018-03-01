@@ -74,7 +74,7 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <T> T selectOne(String statement, Object parameter) {
     // Popular vote was to return null on 0 results and throw exception on too many.
-    List<T> list = this.<T>selectList(statement, parameter);
+    List<T> list = this.<T>selectList(statement, parameter);//调用selectList查询多个
     if (list.size() == 1) {
       return list.get(0);
     } else if (list.size() > 1) {
@@ -138,13 +138,14 @@ public class DefaultSqlSession implements SqlSession {
 
   @Override
   public <E> List<E> selectList(String statement, Object parameter) {
-    return this.selectList(statement, parameter, RowBounds.DEFAULT);
+    return this.selectList(statement, parameter, RowBounds.DEFAULT);//默认的条数为0,int最大值
   }
 
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
-      MappedStatement ms = configuration.getMappedStatement(statement);
+      MappedStatement ms = configuration.getMappedStatement(statement);//通过statement获取Mapper的xml和具体的执行语句
+      //通过执行器执行sql,wrapCollection(parameter)解析parameter是否为Map,List,Collection结构
       return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

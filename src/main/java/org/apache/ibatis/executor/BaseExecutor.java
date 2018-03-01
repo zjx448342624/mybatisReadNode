@@ -55,7 +55,7 @@ public abstract class BaseExecutor implements Executor {
   protected Executor wrapper;
 
   protected ConcurrentLinkedQueue<DeferredLoad> deferredLoads;
-  protected PerpetualCache localCache;
+  protected PerpetualCache localCache;//一级缓存对象
   protected PerpetualCache localOutputParameterCache;
   protected Configuration configuration;
 
@@ -131,11 +131,22 @@ public abstract class BaseExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
-    BoundSql boundSql = ms.getBoundSql(parameter);
-    CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);
-    return query(ms, parameter, rowBounds, resultHandler, key, boundSql);
+    BoundSql boundSql = ms.getBoundSql(parameter);//获取动态的sql语句
+    CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);//创建缓存key
+    return query(ms, parameter, rowBounds, resultHandler, key, boundSql);//查询sql语句
  }
 
+  /**
+   * SqlSession 一级缓存的查询工作流程
+   * 1.对于某个查询，根据statementId,params,rowBounds来构建一个key值，根据这个key值去缓存Cache中取出对应的key值存储的缓存结果；
+	 2. 判断从Cache中根据特定的key值取的数据数据是否为空，即是否命中；
+	 3. 如果命中，则直接将缓存结果返回；
+	 4. 如果没命中：
+		        4.1  去数据库中查询数据，得到查询结果；
+		        4.2  将key和查询到的结果分别作为key,value对存储到Cache中；
+		        4.3. 将查询结果返回；
+	5. 结束。
+   */
   @SuppressWarnings("unchecked")
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
@@ -143,30 +154,31 @@ public abstract class BaseExecutor implements Executor {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
-    if (queryStack == 0 && ms.isFlushCacheRequired()) {
-      clearLocalCache();
+    if (queryStack == 0 && ms.isFlushCacheRequired()) {//检测是否有查询过,是否刷出过缓存
+      clearLocalCache();//清空本地缓存
     }
     List<E> list;
     try {
       queryStack++;
+      //判断一级缓存中是否查询过,如果存在则直接读取
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
-      } else {
+      } else {//如果缓存中没有从数据库查询,然后放到缓存中去
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
       queryStack--;
     }
-    if (queryStack == 0) {
+    if (queryStack == 0) {//查看是否有延迟加载
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }
       // issue #601
-      deferredLoads.clear();
+      deferredLoads.clear();//延迟加载清楚
       if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
         // issue #482
-        clearLocalCache();
+        clearLocalCache();//清空本地缓存
       }
     }
     return list;

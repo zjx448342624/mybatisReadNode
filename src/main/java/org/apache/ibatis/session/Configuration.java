@@ -566,20 +566,21 @@ public class Configuration {
   }
 
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+	  //判断执行器类型是否为空如果空则给默认的执行器类型
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
     Executor executor;
-    if (ExecutorType.BATCH == executorType) {
+    if (ExecutorType.BATCH == executorType) {  //判断是否为批处理类型的
       executor = new BatchExecutor(this, transaction);
-    } else if (ExecutorType.REUSE == executorType) {
+    } else if (ExecutorType.REUSE == executorType) {//重复使用的
       executor = new ReuseExecutor(this, transaction);
-    } else {
+    } else {//默认的处理器
       executor = new SimpleExecutor(this, transaction);
     }
-    if (cacheEnabled) {
+    if (cacheEnabled) {//是否开始缓存
       executor = new CachingExecutor(executor);
     }
-    executor = (Executor) interceptorChain.pluginAll(executor);
+    executor = (Executor) interceptorChain.pluginAll(executor);//处理器绑定插件
     return executor;
   }
 
@@ -716,10 +717,10 @@ public class Configuration {
   }
 
   public MappedStatement getMappedStatement(String id, boolean validateIncompleteStatements) {
-    if (validateIncompleteStatements) {
+    if (validateIncompleteStatements) {//把没有加载成功的xml文件中的标签都移除
       buildAllStatements();
     }
-    return mappedStatements.get(id);
+    return mappedStatements.get(id);//获取要处理的标签信息
   }
 
   public Map<String, XNode> getSqlFragments() {

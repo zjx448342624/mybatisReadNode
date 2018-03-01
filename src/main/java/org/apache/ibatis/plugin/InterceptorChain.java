@@ -28,7 +28,7 @@ public class InterceptorChain {
 
   public Object pluginAll(Object target) {
     for (Interceptor interceptor : interceptors) {
-      target = interceptor.plugin(target);
+      target = interceptor.plugin(target);//通过动态代理进行插件和执行器动态匹配
     }
     return target;
   }
